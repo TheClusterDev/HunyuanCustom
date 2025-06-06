@@ -9,6 +9,14 @@ HunyuanCustom
   │  │  ├──mp_rank_00_model_states.pt
   │  │  │──mp_rank_00_model_states_fp8.pt
   │  │  ├──mp_rank_00_model_states_fp8_map.pt
+  │  ├──hunyuancustom_audio_720P
+  │  │  ├──mp_rank_00_model_states.pt
+  │  │  │──mp_rank_00_model_states_fp8.pt
+  │  │  ├──mp_rank_00_model_states_fp8_map.pt
+  │  ├──hunyuancustom_editing_720P
+  │  │  ├──mp_rank_00_model_states.pt
+  │  │  │──mp_rank_00_model_states_fp8.pt
+  │  │  ├──mp_rank_00_model_states_fp8_map.pt
   │  ├──vae_3d
   │  ├──openai_clip-vit-large-patch14
   │  ├──llava-llama-3-8b-v1_1
