@@ -68,11 +68,15 @@ class Inference(object):
         factor_kwargs = {'device': 'cpu' if args.cpu_offload else device, 'dtype': PRECISION_TO_TYPE[args.precision]}
         in_channels = args.latent_channels
         out_channels = args.latent_channels
+        video_condition = args.video_condition
+        audio_condition = args.audio_condition
         print("="*25, f"build model", "="*25)
         model = load_model(
             args,
             in_channels=in_channels,
             out_channels=out_channels,
+            video_condition=video_condition,
+            audio_condition=audio_condition,
             factor_kwargs=factor_kwargs
         )
         if args.use_fp8:
@@ -148,7 +152,7 @@ class Inference(object):
             pass
         else:
             raise KeyError(f"Key '{load_key}' not found in the checkpoint. Existed keys: {state_dict.keys()}")
-        model.load_state_dict(state_dict, strict=False)
+        model.load_state_dict(state_dict, strict=True)
         return model
 
     def get_exp_dir_and_ckpt_id(self):

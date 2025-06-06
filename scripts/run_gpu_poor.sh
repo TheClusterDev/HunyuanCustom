@@ -10,7 +10,7 @@ OUTPUT_BASEPATH=./results/${modelname}/${current_time}
 
 export CPU_OFFLOAD=1
 CUDA_VISIBLE_DEVICES=0 python3 hymm_sp/sample_gpu_poor.py \
-    --input './assets/images/seg_woman_01.png' \
+    --ref-image './assets/images/seg_woman_01.png' \
     --pos-prompt "Realistic, High-quality. A woman is drinking coffee at a café." \
     --neg-prompt "Aerial view, aerial view, overexposed, low quality, deformation, a poor composition, bad hands, bad teeth, bad eyes, bad limbs, distortion, blurring, text, subtitles, static, picture, black border." \
     --ckpt ${checkpoint_path} \

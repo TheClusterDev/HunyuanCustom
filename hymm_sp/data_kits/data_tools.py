@@ -7,6 +7,59 @@ import torchvision
 from einops import rearrange
 
 
+def mask_to_xyxy_box(mask):
+    rows, cols = np.where(mask == 255)
+    xmin = min(cols)
+    xmax = max(cols) + 1  # 加 1 包含边界像素
+    ymin = min(rows)
+    ymax = max(rows) + 1  # 加 1 包含边界像素
+    xmin = max(xmin, 0)
+    ymin = max(ymin, 0)
+    xmax = min(xmax, mask.shape[1])
+    ymax = min(ymax, mask.shape[0])
+    box = [xmin, ymin, xmax, ymax]
+    box = [int(x) for x in box]
+    return box
+
+
+def encode_audio(wav2vec, audio_feats, num_frames=129):
+    start_ts = [0]
+    step_ts = [1]
+    audio_feats = wav2vec.encoder(audio_feats.unsqueeze(0)[:, :, :3000], output_hidden_states=True).hidden_states
+    audio_feats = torch.stack(audio_feats, dim=2)
+    audio_feats = torch.cat([torch.zeros_like(audio_feats[:,:4]), audio_feats], 1)
+    
+    audio_prompts = []
+    for bb in range(1):
+        audio_feats_list = []
+        for f in range(num_frames):
+            cur_t = (start_ts[bb] + f * step_ts[bb]) * 2
+            audio_clip = audio_feats[bb:bb+1, cur_t: cur_t+10]
+            audio_feats_list.append(audio_clip)
+        audio_feats_list = torch.stack(audio_feats_list, 1)
+        audio_prompts.append(audio_feats_list)
+    audio_prompts = torch.cat(audio_prompts)
+    return audio_prompts
+
+
+def get_audio_feature(feature_extractor, audio_path):
+    import librosa
+    audio_input, sampling_rate = librosa.load(audio_path, sr=16000)
+    assert sampling_rate == 16000
+
+    audio_features = []
+    window = 750*640
+    for i in range(0, len(audio_input), window):
+        audio_feature = feature_extractor(audio_input[i:i+window], 
+                                        sampling_rate=sampling_rate, 
+                                        return_tensors="pt", 
+                                        ).input_features
+        audio_features.append(audio_feature)
+
+    audio_features = torch.cat(audio_features, dim=-1)
+    return audio_features, len(audio_input) // 640
+
+
 def save_videos_grid(videos: torch.Tensor, path: str, rescale=False, n_rows=6, fps=8, quality=8):
     videos = rearrange(videos, "b c t h w -> t b c h w")
     outputs = []

@@ -192,7 +192,14 @@ def process_output_dict(output_dict):
         uuid_string = str(uuid.uuid4())
         temp_video_path = f'{TEMP_DIR}/{uuid_string}.mp4'
         save_videos_grid(output_dict["video"], temp_video_path, fps=25)
-        save_path = temp_video_path
+        if output_dict["audio"] is not None and os.path.exists(output_dict["audio"]):
+            audio_path = output_dict["audio"]
+            save_path = temp_video_path.replace(".mp4", "_audio.mp4")
+            print('='*100)
+            print(f"output_path = {temp_video_path}\n audio_path = {audio_path}\n save_path = {save_path}")
+            os.system(f"ffmpeg -i '{temp_video_path}' -i '{audio_path}' -shortest '{save_path}' -y -loglevel quiet; rm '{temp_video_path}'")
+        else:
+            save_path = temp_video_path
 
         video_base64_buffer = encode_video_to_base64(save_path)
 

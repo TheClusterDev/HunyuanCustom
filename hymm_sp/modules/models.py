@@ -15,6 +15,7 @@ from .attn_layers import apply_rotary_emb
 from .mlp_layers import MLP, MLPEmbedder, FinalLayer
 from .modulate_layers import ModulateDiT, modulate, apply_gate
 from .token_refiner import SingleTokenRefiner
+from .audio_adapter import AudioProjNet2, PerceiverAttentionCA
 
 from .parallel_states import (
     nccl_info,
@@ -373,6 +374,8 @@ class HYVideoDiffusionTransformer(ModelMixin, ConfigMixin):
         qk_norm: bool = True,
         qk_norm_type: str = 'rms',
         guidance_embed: bool = False, # For modulation.
+        video_condition: bool = False,
+        audio_condition: bool = False,
         dtype: Optional[torch.dtype] = None,
         device: Optional[torch.device] = None,
     ):
@@ -403,7 +406,21 @@ class HYVideoDiffusionTransformer(ModelMixin, ConfigMixin):
             raise ValueError(f"Got {rope_dim_list} but expected positional dim {pe_dim}")
         self.hidden_size = hidden_size
         self.num_heads = num_heads
-    
+        self.video_condition = video_condition
+        self.audio_condition = audio_condition
+        if self.video_condition:
+            self.bg_in = PatchEmbed(
+                self.patch_size, self.in_channels * 2, self.hidden_size, **factory_kwargs
+            )
+            self.bg_proj = nn.Linear(self.hidden_size, self.hidden_size)
+
+        if self.audio_condition:
+            self.double_insert_list = [1, 3, 5, 7, 9, 11]
+            self.audio_proj = AudioProjNet2(seq_len=10, blocks=5, channels=384, intermediate_dim=1024, output_dim=3072, context_tokens=4)
+            self.audio_models = nn.ModuleList([PerceiverAttentionCA(dim=3072, dim_hidden=1024, dim_head=1024) for _ in range(len(self.double_insert_list))])
+        else:
+            self.double_insert_list = []
+
         # image projection
         self.img_in = PatchEmbed(
             self.patch_size, self.in_channels, self.hidden_size, **factory_kwargs
@@ -496,7 +513,10 @@ class HYVideoDiffusionTransformer(ModelMixin, ConfigMixin):
         self,
         x: torch.Tensor,
         t: torch.Tensor, # Should be in range(0, 1000).
-        ref_latents: torch.Tensor=None,
+        ref_latents: torch.Tensor = None,
+        bg_latents: torch.Tensor = None,
+        audio_prompts: torch.Tensor = None,
+        audio_strength: float = 1.0,
         text_states: torch.Tensor = None,
         text_mask: torch.Tensor = None, # Now we don't use it.
         text_states_2: Optional[torch.Tensor] = None, # Text embedding for modulation.
@@ -509,7 +529,7 @@ class HYVideoDiffusionTransformer(ModelMixin, ConfigMixin):
         out = {}
         img = x
         txt = text_states
-        _, _, ot, oh, ow = x.shape
+        bsz, _, ot, oh, ow = x.shape
         tt, th, tw = ot // self.patch_size[0], oh // self.patch_size[1], ow // self.patch_size[2]
 
         # Prepare modulation vectors.
@@ -526,10 +546,18 @@ class HYVideoDiffusionTransformer(ModelMixin, ConfigMixin):
                 # our timestep_embedding is merged into guidance_in(TimestepEmbedder)
                 vec = vec + self.guidance_in(guidance)
 
+        if self.audio_condition and audio_prompts is not None:
+            audio_prompts = audio_prompts.to(img)
+            audio_feature_all = self.audio_proj(audio_prompts)
+        else:
+            audio_feature_all = None
         if CPU_OFFLOAD: torch.cuda.empty_cache()
         # Embed image and text.
         img = self.img_in(img)
         ref_latents = self.img_in(ref_latents)
+        if bg_latents is not None and self.video_condition:
+            img = self.bg_proj(self.bg_in(bg_latents)) + img
+
         if self.text_projection == "linear":
             txt = self.txt_in(txt)
         elif self.text_projection == "single_refiner":
@@ -540,6 +568,7 @@ class HYVideoDiffusionTransformer(ModelMixin, ConfigMixin):
         if CPU_OFFLOAD: torch.cuda.empty_cache()
         ref_length = ref_latents.shape[-2]
         img = torch.cat([ref_latents, img], dim=-2) # t c
+
         txt_seq_len = txt.shape[1]
         img_seq_len = img.shape[1]
         # Compute 'self-attention mask'.
@@ -548,7 +577,7 @@ class HYVideoDiffusionTransformer(ModelMixin, ConfigMixin):
         cu_seqlens_kv = cu_seqlens_q
         max_seqlen_q = img_seq_len + txt_seq_len
         max_seqlen_kv = max_seqlen_q
-
+    
         if get_sequence_parallel_state():
             sp_size = nccl_info.sp_size
             sp_rank = nccl_info.rank_within_group
@@ -565,7 +594,24 @@ class HYVideoDiffusionTransformer(ModelMixin, ConfigMixin):
                 double_block_args = [img, txt, vec, cu_seqlens_q, cu_seqlens_kv, max_seqlen_q, max_seqlen_kv, freqs_cis]
                 img, txt = block(*double_block_args)
                 if CPU_OFFLOAD: torch.cuda.empty_cache()
-
+                if  audio_feature_all is not None and layer_num in self.double_insert_list:
+                    if get_sequence_parallel_state():
+                        img = all_gather(img, dim=1)
+                    model_index = self.double_insert_list.index(layer_num)
+                    real_img = img[:, ref_length:].clone().view(bsz, ot, -1, 3072)  
+                    real_ref_img = torch.zeros_like(img[:, :ref_length].clone())     
+                    
+                    audio_feature_pad = audio_feature_all[:, :1].repeat(1, 3, 1, 1) 
+                    audio_feature_all_insert = torch.cat([audio_feature_pad, audio_feature_all], dim=1).view(bsz, ot, 16, 3072)
+                    
+                    real_img = self.audio_models[model_index](audio_feature_all_insert, real_img).view(bsz, -1, 3072)
+                    img = img + torch.cat((real_ref_img, real_img * audio_strength), dim=1)
+                    if get_sequence_parallel_state():
+                        sp_size = nccl_info.sp_size
+                        sp_rank = nccl_info.rank_within_group
+                        assert img.shape[1] % sp_size == 0, f"Cannot split video sequence into ulysses SP ({sp_size}) parts evenly"
+                        img = torch.chunk(img, sp_size, dim=1)[sp_rank]
+                        
             # Merge txt and img to pass through single stream blocks.
             x = torch.cat((img, txt), 1)
             # Compatible with MMDiT.

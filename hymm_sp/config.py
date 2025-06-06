@@ -32,6 +32,8 @@ def add_network_args(parser: argparse.ArgumentParser):
     group.add_argument("--latent-channels", type=str, default=None,
                        help="Number of latent channels of DiT. If None, it will be determined by `vae`. If provided, "
                             "it still needs to match the latent channels of the VAE model.")
+    group.add_argument("--video-condition", action="store_true", default=False, help="Load Video Editing Model.")
+    group.add_argument("--audio-condition", action="store_true", default=False, help="Load Video Editing Model.")
     group.add_argument("--rope-theta", type=int, default=256, help="Theta used in RoPE.")
     return parser
 
@@ -99,7 +101,7 @@ def add_evaluation_args(parser: argparse.ArgumentParser):
                        help="Key to load the model states. 'module' for the main model, 'ema' for the EMA model.")
     parser.add_argument("--cpu-offload", action="store_true", help="Use CPU offload for the model load.")
     group.add_argument( "--use-fp8", action="store_true", help="Enable use fp8 for inference acceleration.")
-    group.add_argument("--video-size", type=int, nargs='+', default=512,
+    group.add_argument("--video-size", type=int, nargs='+', default=[512, 896],
                         help="Video size for training. If a single value is provided, it will be used for both width "
                             "and height. If two values are provided, they will be used for width and height "
                             "respectively.")
@@ -118,7 +120,15 @@ def add_evaluation_args(parser: argparse.ArgumentParser):
     group.add_argument("--pad-face-size", type=float, default=0.7, help="Pad bbox for face align.")
     group.add_argument("--image-path", type=str, default="",  help="")
     group.add_argument("--save-path", type=str, default=None, help="Path to save the generated samples.")
-    group.add_argument("--input", type=str, default=None, help="test data.")
+    group.add_argument("--input-json", type=str, default=None, help="Path to test json.")
+    group.add_argument("--ref-image", type=str, default=None, help="Path to reference image.")
+    group.add_argument("--input-video", type=str, default=None, help="Path to background video.")
+    group.add_argument("--input-audio", type=str, default=None, help="Path to audio.")
+    group.add_argument("--mask-video", type=str, default=None, help="Path to mask video.")
+    group.add_argument("--pose-enhance", action="store_true", help="Utilize DWpose to improve pose control during video editing.")
+    group.add_argument("--expand-scale", type=int, default=0, help="Expand mask")
+    group.add_argument("--audio-strength", type=float, default=1.0, help="Control the influence of audio.")
+    group.add_argument("--fps", type=int, default=25, help="Frames Per Second of the generated video")
     group.add_argument("--item-name", type=str, default=None, help="")
     group.add_argument("--cfg-scale", type=float, default=7.5, help="Classifier free guidance scale.")
     group.add_argument("--ip-cfg-scale", type=float, default=0, help="Classifier free guidance scale.")

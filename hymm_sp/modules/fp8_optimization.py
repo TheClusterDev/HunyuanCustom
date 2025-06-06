@@ -84,6 +84,7 @@ def convert_fp8_linear(module, dit_weight_path, original_dtype, params_to_keep={
 
     # loading fp8 mapping file
     fp8_map_path = dit_weight_path.replace('.pt', '_map.pt')
+    print(fp8_map_path)
     if os.path.exists(fp8_map_path):
         fp8_map = torch.load(fp8_map_path, map_location=lambda storage, loc: storage)['module']
     else:

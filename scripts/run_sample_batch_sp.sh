@@ -8,7 +8,7 @@ modelname='Tencent_HunyuanCustom_720P'
 OUTPUT_BASEPATH=./results/${modelname}/${current_time}
 
 torchrun --nnodes=1 --nproc_per_node=8 --master_port 29605 hymm_sp/sample_batch.py \
-    --input './assets/images/seg_woman_01.png' \
+    --ref-image './assets/images/seg_woman_01.png' \
     --pos-prompt "Realistic, High-quality. A woman is drinking coffee at a café." \
     --neg-prompt "Aerial view, aerial view, overexposed, low quality, deformation, a poor composition, bad hands, bad teeth, bad eyes, bad limbs, distortion, blurring, text, subtitles, static, picture, black border." \
     --ckpt ${checkpoint_path} \
@@ -20,3 +20,4 @@ torchrun --nnodes=1 --nproc_per_node=8 --master_port 29605 hymm_sp/sample_batch.
     --use-deepcache 1 \
     --flow-shift-eval-video 13.0 \
     --save-path ${OUTPUT_BASEPATH}
+

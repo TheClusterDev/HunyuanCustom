@@ -440,6 +440,7 @@ class HunyuanVideoCustomPipeline(DiffusionPipeline):
         callback_steps,
         pixel_value_llava=None,
         uncond_pixel_value_llava=None,
+        audio_prompts=None,
         negative_prompt=None,
         prompt_embeds=None,
         negative_prompt_embeds=None,
@@ -636,9 +637,12 @@ class HunyuanVideoCustomPipeline(DiffusionPipeline):
         negative_prompt: Optional[Union[str, List[str]]] = None,
         ref_latents: Optional[torch.Tensor] = None,
         uncond_ref_latents: Optional[torch.Tensor] = None,
+        bg_latents: Optional[torch.Tensor] = None,
+        audio_prompts: Optional[torch.Tensor] = None,
         pixel_value_llava: Optional[torch.Tensor] = None,
         uncond_pixel_value_llava: Optional[torch.Tensor] = None,
         ip_cfg_scale: float = 0.0,
+        audio_strength: float = 1.0,
         use_deepcache: int = 1,
         num_videos_per_prompt: Optional[int] = 1,
         eta: float = 0.0,
@@ -789,6 +793,7 @@ class HunyuanVideoCustomPipeline(DiffusionPipeline):
             negative_prompt,
             pixel_value_llava,
             uncond_pixel_value_llava,
+            audio_prompts,
             prompt_embeds,
             negative_prompt_embeds,
             callback_on_step_end_tensor_inputs,
@@ -875,6 +880,11 @@ class HunyuanVideoCustomPipeline(DiffusionPipeline):
                 if prompt_mask[0].sum() > 575:
                     prompt_mask[0] = torch.cat([torch.ones((1, prompt_mask[0].sum() - 575)).to(prompt_mask), 
                                                 torch.zeros((1, prompt_mask.shape[1] - prompt_mask[0].sum() + 575)).to(prompt_mask)], dim=1)
+            if bg_latents is not None:
+                bg_latents = torch.cat([bg_latents, bg_latents], dim=0)
+
+            if audio_prompts is not None:
+                audio_prompts = torch.cat([torch.zeros_like(audio_prompts), audio_prompts], dim=0)
 
         if ip_cfg_scale>0:
             prompt_embeds = torch.cat([prompt_embeds, prompt_embeds[1:]])
@@ -1004,6 +1014,9 @@ class HunyuanVideoCustomPipeline(DiffusionPipeline):
                             latent_model_input,             # [2, 16, 1, 32, 32] #
                             t_expand,                       # [2]
                             ref_latents=ref_latents,
+                            bg_latents=bg_latents,
+                            audio_prompts=audio_prompts,
+                            audio_strength=audio_strength,
                             text_states=prompt_embeds,      # [2, 256, 4096]
                             text_mask=prompt_mask,          # [2, 256]
                             text_states_2=prompt_embeds_2,  # [2, 768]

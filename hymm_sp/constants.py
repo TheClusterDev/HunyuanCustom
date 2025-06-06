@@ -52,6 +52,11 @@ TOKENIZER_PATH = {
     "llava-llama-3-8b": f"{MODEL_BASE}/llava-llama-3-8b-v1_1",
 }
 
+ANNOTATOR_PATH = {
+    "dwpose": f"{MODEL_BASE}/DWPose",
+    "whisper": f"{MODEL_BASE}/whisper-tiny"
+}
+
 TEXT_PROJECTION = {
     "linear",                               # Default, an nn.Linear() layer
     "single_refiner",                       # Single TokenRefiner. Refer to LI-DiT

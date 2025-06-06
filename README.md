@@ -23,6 +23,7 @@
 
 
 ## 🔥🔥🔥 News!!
+* June 6, 2025: 💃 We release the inference code and model weights of audio-driven and video-driven powered by [OmniV2V](https://arxiv.org/abs/2506.01801).
 * May 13, 2025: 🎉 HunyuanCustom has been integrated into [ComfyUI-HunyuanVideoWrapper](https://github.com/kijai/ComfyUI-HunyuanVideoWrapper/blob/develop/example_workflows/hyvideo_custom_testing_01.json) by [Kijai](https://github.com/kijai).
 * May 12, 2025: 🔥 HunyuanCustom is available in Cloud-Native-Build (CNB) [HunyuanCustom](https://cnb.cool/tencent/hunyuan/HunyuanCustom).
 * May  8, 2025: 👋 We release the inference code and model weights of HunyuanCustom. [Download](models/README.md).
@@ -36,7 +37,13 @@
     - [x] Checkpoints
     - [x] ComfyUI
   - Audio-Driven Video Customization
+    - [x] Inference 
+    - [x] Checkpoints
+    - [ ] ComfyUI
   - Video-Driven Video Customization
+    - [x] Inference 
+    - [x] Checkpoints
+    - [ ] ComfyUI
   - Multi-Subject Video Customization
 
 ## Contents
@@ -196,13 +203,14 @@ The details of download pretrained models are shown [here](models/README.md).
 
 For example, to generate a video with 8 GPUs, you can use the following command:
 
+### Run Single-Subject Video Customization
 ```bash
 cd HunyuanCustom
 
 export MODEL_BASE="./models"
 export PYTHONPATH=./
 torchrun --nnodes=1 --nproc_per_node=8 --master_port 29605 hymm_sp/sample_batch.py \
-    --input './assets/images/seg_woman_01.png' \
+    --ref-image './assets/images/seg_woman_01.png' \
     --pos-prompt "Realistic, High-quality. A woman is drinking coffee at a café." \
     --neg-prompt "Aerial view, aerial view, overexposed, low quality, deformation, a poor composition, bad hands, bad teeth, bad eyes, bad limbs, distortion, blurring, text, subtitles, static, picture, black border." \
     --ckpt ${MODEL_BASE}"/hunyuancustom_720P/mp_rank_00_model_states.pt" \
@@ -212,6 +220,52 @@ torchrun --nnodes=1 --nproc_per_node=8 --master_port 29605 hymm_sp/sample_batch.
     --infer-steps 30 \
     --flow-shift-eval-video 13.0 \
     --save-path './results/sp_720p'
+```
+
+### Run Video-Driven Video Customization (Video Editing)
+```bash
+cd HunyuanCustom
+
+export MODEL_BASE="./models"
+export PYTHONPATH=./
+torchrun --nnodes=1 --nproc_per_node=8 --master_port 29605 hymm_sp/sample_batch.py \
+    --ref-image './assets/images/sed_red_panda.png' \
+    --input-video './assets/input_videos/001_bg.mp4' \
+    --mask-video './assets/input_videos/001_mask.mp4' \
+    --expand-scale 5 \
+    --video-condition \
+    --pos-prompt "Realistic, High-quality. A red panda is walking on a stone road." \
+    --neg-prompt "Aerial view, aerial view, overexposed, low quality, deformation, a poor composition, bad hands, bad teeth, bad eyes, bad limbs, distortion, blurring, text, subtitles, static, picture, black border." \
+    --ckpt ${MODEL_BASE}"/hunyuancustom_editing_720P/mp_rank_00_model_states.pt" \
+    --seed 1024 \
+    --infer-steps 50 \
+    --flow-shift-eval-video 5.0 \
+    --save-path './results/sp_editing_720p'
+    # --pose-enhance # Enable for human videos to improve pose generation quality.
+```
+
+### Run Audio-Driven Video Customization
+```bash
+cd HunyuanCustom
+
+export MODEL_BASE="./models"
+export PYTHONPATH=./
+torchrun --nnodes=1 --nproc_per_node=8 --master_port 29605 hymm_sp/sample_batch.py \
+    --ref-image './assets/images/seg_man_01.png' \
+    --input-audio './assets/audios/milk_man.mp3' \
+    --audio-strength 0.8 \
+    --audio-condition \
+    --pos-prompt "Realistic, High-quality. In the study, a man sits at a table featuring a bottle of milk while delivering a product presentation." \
+    --neg-prompt "Two people, two persons, aerial view, overexposed, low quality, deformation, a poor composition, bad hands, bad teeth, bad eyes, bad limbs, distortion, blurring, text, subtitles, static, picture, black border." \
+    --ckpt ${MODEL_BASE}"/hunyuancustom_audio_720P/mp_rank_00_model_states.pt" \
+    --seed 1026 \
+    --video-size 720 1280 \
+    --sample-n-frames 129 \
+    --cfg-scale 7.5 \
+    --infer-steps 30 \
+    --use-deepcache 1 \
+    --flow-shift-eval-video 13.0 \
+    --save-path './results/sp_audio_720p'
 ```
 
 ## 🔑 Single-gpu Inference
@@ -225,7 +279,7 @@ export MODEL_BASE="./models"
 export DISABLE_SP=1
 export PYTHONPATH=./
 python hymm_sp/sample_gpu_poor.py \
-    --input './assets/images/seg_woman_01.png' \
+    --ref-image './assets/images/seg_woman_01.png' \
     --pos-prompt "Realistic, High-quality. A woman is drinking coffee at a café." \
     --neg-prompt "Aerial view, aerial view, overexposed, low quality, deformation, a poor composition, bad hands, bad teeth, bad eyes, bad limbs, distortion, blurring, text, subtitles, static, picture, black border." \
     --ckpt ${MODEL_BASE}"/hunyuancustom_720P/mp_rank_00_model_states_fp8.pt" \
@@ -247,7 +301,7 @@ export MODEL_BASE="./models"
 export CPU_OFFLOAD=1
 export PYTHONPATH=./
 python hymm_sp/sample_gpu_poor.py \
-    --input './assets/images/seg_woman_01.png' \
+    --ref-image './assets/images/seg_woman_01.png' \
     --pos-prompt "Realistic, High-quality. A woman is drinking coffee at a café." \
     --neg-prompt "Aerial view, aerial view, overexposed, low quality, deformation, a poor composition, bad hands, bad teeth, bad eyes, bad limbs, distortion, blurring, text, subtitles, static, picture, black border." \
     --ckpt ${MODEL_BASE}"/hunyuancustom_720P/mp_rank_00_model_states_fp8.pt" \
@@ -266,8 +320,14 @@ python hymm_sp/sample_gpu_poor.py \
 ```bash
 cd HunyuanCustom
 
-bash ./scripts/run_gradio.sh
+# Single-Subject Video Customization
+bash ./scripts/run_gradio.sh 
 
+# Video-Driven Video Customization
+bash ./scripts/run_gradio.sh --video
+
+# Audio-Driven Video Customization
+bash ./scripts/run_gradio.sh --audio
 ```
 
 ## 🔗 BibTeX
@@ -288,4 +348,4 @@ If you find [HunyuanCustom](https://arxiv.org/abs/2505.04512) useful for your re
 
 ## Acknowledgements
 
-We would like to thank the contributors to the [HunyuanVideo](https://github.com/Tencent/HunyuanVideo), [SD3](https://huggingface.co/stabilityai/stable-diffusion-3-medium), [FLUX](https://github.com/black-forest-labs/flux), [Llama](https://github.com/meta-llama/llama), [LLaVA](https://github.com/haotian-liu/LLaVA), [Xtuner](https://github.com/InternLM/xtuner), [diffusers](https://github.com/huggingface/diffusers) and [HuggingFace](https://huggingface.co) repositories, for their open research and exploration. 
+We would like to thank the contributors to the [HunyuanVideo](https://github.com/Tencent/HunyuanVideo), [HunyuanVideo-Avatar](https://github.com/Tencent-Hunyuan/HunyuanVideo-Avatar), [MimicMotion](https://github.com/Tencent/MimicMotion), [SD3](https://huggingface.co/stabilityai/stable-diffusion-3-medium), [FLUX](https://github.com/black-forest-labs/flux), [Llama](https://github.com/meta-llama/llama), [LLaVA](https://github.com/haotian-liu/LLaVA), [Xtuner](https://github.com/InternLM/xtuner), [diffusers](https://github.com/huggingface/diffusers) and [HuggingFace](https://huggingface.co) repositories, for their open research and exploration. 

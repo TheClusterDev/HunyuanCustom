@@ -2,6 +2,7 @@
 JOBS_DIR=$(dirname $(dirname "$0"))
 export PYTHONPATH=${JOBS_DIR}:$PYTHONPATH
 export MODEL_BASE=${JOBS_DIR}"/models"
+export NCCL_DEBUG=OFF
 checkpoint_path=${MODEL_BASE}"/hunyuancustom_720P/mp_rank_00_model_states_fp8.pt"
 current_time=$(date "+%Y.%m.%d-%H.%M.%S")
 modelname='Tencent_HunyuanCustom_720P'
@@ -9,7 +10,7 @@ OUTPUT_BASEPATH=./results/${modelname}/${current_time}
 
 export DISABLE_SP=1 
 CUDA_VISIBLE_DEVICES=0 python3 hymm_sp/sample_gpu_poor.py \
-    --input './assets/images/seg_woman_01.png' \
+    --ref-image './assets/images/seg_woman_01.png' \
     --pos-prompt "Realistic, High-quality. A woman is drinking coffee at a café." \
     --neg-prompt "Aerial view, aerial view, overexposed, low quality, deformation, a poor composition, bad hands, bad teeth, bad eyes, bad limbs, distortion, blurring, text, subtitles, static, picture, black border." \
     --ckpt ${checkpoint_path} \
