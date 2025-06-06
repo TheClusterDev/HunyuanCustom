@@ -65,6 +65,7 @@ def main():
         with torch.autocast(device_type="cuda", dtype=vae_dtype, enabled=vae_dtype != torch.float32):
             hunyuan_video_sampler.vae.enable_tiling()
             ref_latents = hunyuan_video_sampler.vae.encode(pixel_value_ref_for_vae.clone()).latent_dist.sample()
+            hunyuan_video_sampler.vae.to(device) # BUGFIX: Move VAE to GPU before encoding
             uncond_ref_latents = hunyuan_video_sampler.vae.encode(torch.ones_like(pixel_value_ref_for_vae)).latent_dist.sample()
             if args.video_condition:
                 pixel_value_bg = batch['pixel_value_bg'].to(device) * 2 - 1.             
