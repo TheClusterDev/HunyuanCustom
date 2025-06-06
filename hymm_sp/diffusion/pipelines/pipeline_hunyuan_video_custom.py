@@ -452,8 +452,9 @@ class HunyuanVideoCustomPipeline(DiffusionPipeline):
 
         if frame is not None:
             if '884' in vae_ver:
-                if frame!=1 and (frame-1)%4!=0:
-                    raise ValueError(f'`frame` has to be 1 or a multiple of 4 but is {frame}.')
+                # if frame!=1 and (frame-1)%4!=0:
+                #     raise ValueError(f'`frame` has to be 1 or a multiple of 4 but is {frame}.')
+                pass
             elif '888' in vae_ver:
                 if frame!=1 and (frame-1)%8!=0:
                     raise ValueError(f'`frame` has to be 1 or a multiple of 8 but is {frame}.')
