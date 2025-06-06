@@ -1,0 +1,9 @@
+{
+  "item_prompt": "man",
+  "seed": 1026,
+  "audio_path": "assets/audios/milk_man.mp3",
+  "pos_prompt": "Realistic, High-quality. In the study, a man sits at a table featuring a bottle of milk while delivering a product presentation.",
+  "neg_prompt": "Two people, two persons, aerial view, overexposed, low quality, deformation, a poor composition, bad hands, bad teeth, bad eyes, bad limbs, distortion, blurring, text, subtitles, static, picture, black border.",
+  "chinese": "真实感，高品质。一个男人坐在一张摆放着一瓶牛奶的桌子前进行产品演示",
+  "seg_item_image_path": "assets/images/seg_man_01.png"
+}

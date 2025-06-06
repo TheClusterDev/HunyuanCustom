@@ -1,0 +1,8 @@
+{
+  "item_prompt": "woman",
+  "seed": 1024,
+  "pos_prompt": "Realistic, High-quality. A woman is drinking coffee at a café.",
+  "neg_prompt": "Aerial view, aerial view, overexposed, low quality, deformation, a poor composition, bad hands, bad teeth, bad eyes, bad limbs, distortion, blurring, text, subtitles, static, picture, black border.",
+  "chinese": "真实感，高品质。一位女士正在咖啡馆里喝咖啡。",
+  "seg_item_image_path": "assets/images/seg_woman_01.png"
+}

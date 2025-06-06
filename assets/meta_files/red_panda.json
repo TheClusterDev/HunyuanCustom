@@ -1,0 +1,10 @@
+{
+  "item_prompt": "red panda",
+  "seed": 1024,
+  "video_path": "assets/input_videos/001_bg.mp4",
+  "mask_path": "assets/input_videos/001_mask.mp4",
+  "pos_prompt": "Realistic, High-quality. A red panda is walking on a stone road.",
+  "neg_prompt": "Aerial view, aerial view, overexposed, low quality, deformation, a poor composition, bad hands, bad teeth, bad eyes, bad limbs, distortion, blurring, text, subtitles, static, picture, black border.",
+  "chinese": "真实感，高品质。一只红熊猫正在石头路上行走。",
+  "seg_item_image_path": "assets/images/sed_red_panda.png"
+}
